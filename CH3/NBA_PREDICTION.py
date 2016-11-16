@@ -1,5 +1,7 @@
 #_*_coding:utf-8_*_
 import pandas as pd
+import numpy as np
+
 dataset=pd.read_csv('data.txt',parse_dates=["Date"])
 dataset.columns=["Date","Startclock","Visitor_team","Visitor_pts","Home_team","Home_pts","Score_type","OT?","Notes"]
 dataset["Homewin"]=dataset["Visitor_pts"]<dataset["Home_pts"]
@@ -47,3 +49,31 @@ for index,row in dataset.iterrows():
 x_homehigher=dataset[["Homelastwin","Visitorlastwin","Hometeamrankshigher"]].values
 scores=cross_val_score(clf,x_homehigher,y_true,scoring="accuracy")
 print(scores)
+last_match_winner=defaultdict(int)
+dataset["hometeamlastwin"]=0
+# print(dataset.ix[:2])
+for index,row in dataset.iterrows():
+    home_team=row["Home_team"]
+    visitor_team=row["Visitor_team"]
+    teams=tuple(sorted([home_team,visitor_team]))
+    row["hometeamlastwin"]=1 if last_match_winner[teams]==row["Home_team"] else 0
+    dataset.ix[index]=row
+    # winner=row["Home_team"] if row["Homewin"] else row["Visitor_team"]
+    # last_match_winner[teams]=winner
+x_lastwinner=dataset[["Hometeamrankshigher","hometeamlastwin"]].values
+scores1=cross_val_score(clf,x_lastwinner,y_true,scoring="accuracy")
+print(scores1)
+#将字符串类型的球队名转换为整型
+from sklearn.preprocessing import LabelEncoder
+encoding=LabelEncoder()
+encoding.fit(dataset["Home_team"].values)
+home_teams=encoding.transform(dataset["Home_team"].values)
+visitor_teams=encoding.transform(dataset["Visitor_team"].values)
+x_teams=np.vstack([home_teams,visitor_teams]).T
+print(x_teams)
+from sklearn.preprocessing import OneHotEncoder
+onehot=OneHotEncoder()
+x_team=onehot.fit_transform(x_teams).todense()
+print(x_team)
+score2=cross_val_score(clf,x_teams,y_true,scoring="accuracy")
+print(score2)
