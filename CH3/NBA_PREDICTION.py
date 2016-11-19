@@ -27,9 +27,9 @@ clf=DecisionTreeClassifier(random_state=14)
 x_prewin=dataset[["Homelastwin","Visitorlastwin"]].values
 print(x_prewin)
 scores=cross_val_score(clf,x_prewin,y_true,scoring="accuracy")
-print(scores)
+# print(scores)
 standing=pd.read_csv('data11.txt',encoding='gbk',header=1)
-print(standing)
+# print(standing)
 dataset["Hometeamrankshigher"]=0
 for index,row in dataset.iterrows():
     home_team=row["Home_team"]
@@ -45,5 +45,16 @@ for index,row in dataset.iterrows():
     # print(row["Hometeamrankshigher"])
     dataset.ix[index]=row
 x_homehigher=dataset[["Homelastwin","Visitorlastwin","Hometeamrankshigher"]].values
-scores=cross_val_score(clf,x_homehigher,y_true,scoring="accuracy")
-print(scores)
+# scores=cross_val_score(clf,x_homehigher,y_true,scoring="accuracy")
+# print(scores)
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.model_selection import GridSearchCV
+random_forest=RandomForestClassifier(random_state=14,n_jobs=4,oob_score=True,n_estimators=100)
+scores1=cross_val_score(random_forest,x_homehigher,y_true,scoring="accuracy")
+print(scores1)
+parameter_space={"n_estimators":[100,],"criterion":["gini","entropy"],"min_samples_leaf":[2,4,6],}
+clf2=RandomForestClassifier(random_state=14)
+grid=GridSearchCV(clf2,parameter_space)
+grid.fit(x_homehigher,y_true)
+print(grid.best_score_)
+print(grid.best_estimator_)
