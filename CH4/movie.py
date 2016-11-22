@@ -32,7 +32,7 @@ print(num_favorable_by_movie.sort_values(by="favorable",ascending=False))
 frequent_itemsets={}
 min_support=50.0
 #frozenset((movieid,))??????frozenset(v.values)
-<<<<<<< HEAD
+
 # frequent_itemsets[1]=dict((frozenset((movieid,)),row["favorable"])
 #                           for movieid,row in num_favorable_by_movie.iterrows()
 #                           if row["favorable"] > min_support)
@@ -40,7 +40,6 @@ frequent_itemsets[1]=dict((movieid,row["favorable"])
                           for movieid,row in num_favorable_by_movie.iterrows()
                           if row["favorable"] > min_support)
 print(frequent_itemsets)
-=======
 #dict的键值为KEY,对应的为item,引用时A.items(),引用所有，若是A择则是引用键值
 frequent_itemsets[1]=dict((frozenset((movieid,)),row["favorable"])
                           for movieid,row in num_favorable_by_movie.iterrows()
@@ -48,31 +47,29 @@ frequent_itemsets[1]=dict((frozenset((movieid,)),row["favorable"])
 print(frequent_itemsets[1])
 # for item in frequent_itemsets[1]:
 #     print(item)
-
->>>>>>> origin/master
+#生成一个频繁项集
+frequent_itemsets[1]=dict((frozenset((movieid,)),row["favorable"])
+                          for movieid,row in num_favorable_by_movie.iterrows()
+                          if row["favorable"] > min_support)
+# print(frequent_itemsets[1])
 from collections import defaultdict
-
+#寻找下一个频繁项集
 def find_frequent_itemsets(favorable_rates_by_userid,k_1_itemsets,min_support):
     counts=defaultdict(int)
     for userid,reviews in favorable_rates_by_userid.items():
         for itemset in k_1_itemsets:
             if itemset.issubset(reviews):
-<<<<<<< HEAD
                 for other_reviewed in reviews-itemset:
                     current_superset=itemset|frozenset((other_reviewed,))
                     counts[current_superset]+=1
     return dict([itemset,frequency] for itemset,frequency in counts.items() if frequency>min_support)
-=======
-                for other_reviews in reviews-itemset:
-                    current_superset=itemset|frozenset((other_reviews,))
-                    counts[current_superset]+=1
                     #计算在一个人的电影名单中同时出现的次数
-    return dict([itemset,frequence] for itemset,frequence in counts.items() if frequence>=min_support)
 import sys
+#生成所有频繁项集
 for k in range(2,4):
     cur_frequent_itemset=find_frequent_itemsets(favorable_rates_by_userid,frequent_itemsets[k-1],min_support)
     frequent_itemsets[k]=cur_frequent_itemset
-    print(cur_frequent_itemset,len(cur_frequent_itemset))
+    # print(cur_frequent_itemset,len(cur_frequent_itemset))
     if len(cur_frequent_itemset)==0:
         print("can't find any frequent itemset")
         sys.stdout.flush()
@@ -81,6 +78,7 @@ for k in range(2,4):
         print("i find {} of length {}".format(len(cur_frequent_itemset),k))
         sys.stdout.flush()
 del frequent_itemsets[1]
+#生成规则
 candidate_rules=[]
 for itemset_lengeth,itemset_counts in frequent_itemsets.items():
     for items in itemset_counts.keys():
@@ -107,19 +105,47 @@ sorte_confidence=sorted(rule_confidence.items(),key=itemgetter(1),reverse=True)
 print(sorte_confidence[:5])
 # for index in range(5):
 #电影名称与编号的映射
-movie_names=pd.read_csv("movies.dat",delimiter="::",header=None)
+movie_names=pd.read_csv("movies.dat",delimiter="::",header=None,engine='python')
 movie_names.columns=["movieid","movie_names","movie_type"]
 print(movie_names)
 def get_movie_names(movieid):
-    movie_name=movie_names[movie_names["movieid"]==movieid]["movie_names"]
+    movie_name1=movie_names[movie_names["movieid"]==movieid]["movie_names"]
+    movie_name=movie_name1.values[0]
     return  movie_name
-print(get_movie_names(2571))
+# print(get_movie_names(2571))
 for index in range(5):
     print("rule{}".format(index))
     (premise,conclution)=sorte_confidence[index][0]
-    print(id for id in premise)
-    premise_names=" ".join(get_movie_names(id) for id in premise)
+    # print(id for id in premise)
+    #加入了str()
+    premise_names=",".join(get_movie_names(id) for id in premise)
+    print(premise_names)
     conclution_name=get_movie_names(conclution)
-    print("rule:if a person recomand {0},he weill also recomand {1},and the confidence "
-          "is {3:.3f}".format(premise_names,conclution_name,rule_confidence[(premise,conclution)]))
->>>>>>> origin/master
+    print("rule:if a person recomand {0},he weill also recomand {1}".format(premise_names,conclution_name))
+    print("confidece:{0:.3f}".format(rule_confidence[(premise,conclution)]))
+#评估
+test_dataset=all_ratings[~all_ratings["userid"].isin(range(200))]
+test_favorable=test_dataset[test_dataset["favorable"]]
+test_favorable_by_userid=dict((k,frozenset(v.values)) for k,v in test_favorable.groupby("userid")["movieid"])
+#计算置信度
+correct_counts1=defaultdict(int)
+incorrect_counts1=defaultdict(int)
+for user,reviews in test_favorable_by_userid.items():
+    for candidate_rule in candidate_rules:
+        premise,conclution=candidate_rule
+        if premise.issubset(reviews):
+            if conclution in reviews:
+                correct_counts1[candidate_rule]+=1
+            else:
+                incorrect_counts1[candidate_rule]+=1
+confidence={candidate_rule:correct_counts1[candidate_rule]/float(correct_counts1[candidate_rule]+incorrect_counts1[candidate_rule])
+                                                                 for candidate_rule in candidate_rules}
+sorted_confidence=sorted(confidence.items(),key=itemgetter(1),reverse=True)
+print("this is a test")
+for index in range(6):
+    print("rule:{}".format(index+1))
+    premise,conclution=sorted_confidence[index][0]
+    premise_names=','.join(get_movie_names(id) for id in premise)
+    conclution_name=get_movie_names(conclution)
+    print("if one recomand {0},he will also recomand {1},and the confeidence is {2:.3f})"
+          .format(premise_names,conclution_name,confidence[(premise,conclution)]))
