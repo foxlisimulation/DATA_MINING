@@ -28,11 +28,21 @@ print(num_favorable_by_movie.sort_values(by="favorable",ascending=False))
 frequent_itemsets={}
 min_support=50.0
 #frozenset((movieid,))??????frozenset(v.values)
-frequent_itemsets[1]=dict((frozenset((movieid,)),row["favorable"])
+# frequent_itemsets[1]=dict((frozenset((movieid,)),row["favorable"])
+#                           for movieid,row in num_favorable_by_movie.iterrows()
+#                           if row["favorable"] > min_support)
+frequent_itemsets[1]=dict((movieid,row["favorable"])
                           for movieid,row in num_favorable_by_movie.iterrows()
                           if row["favorable"] > min_support)
-print(frequent_itemsets[1])
+print(frequent_itemsets)
 from collections import defaultdict
+
 def find_frequent_itemsets(favorable_rates_by_userid,k_1_itemsets,min_support):
     counts=defaultdict(int)
     for userid,reviews in favorable_rates_by_userid.items():
+        for itemset in k_1_itemsets:
+            if itemset.issubset(reviews):
+                for other_reviewed in reviews-itemset:
+                    current_superset=itemset|frozenset((other_reviewed,))
+                    counts[current_superset]+=1
+    return dict([itemset,frequency] for itemset,frequency in counts.items() if frequency>min_support)
